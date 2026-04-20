@@ -80,6 +80,8 @@ public class OrderService {
         return toResponse(saved, customer);
     }
 
+    @Transactional(readOnly = true)
+
     public OrderResponse getOrderById(Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -87,6 +89,8 @@ public class OrderService {
         CustomerClient.CustomerResponse customer = customerClient.getCustomerById(order.getCustomerId());
         return toResponse(order, customer);
     }
+
+    @Transactional(readOnly = true)
 
     public List<OrderResponse> getOrdersByCustomer(Long customerId) {
         CustomerClient.CustomerResponse customer = customerClient.getCustomerById(customerId);
@@ -107,7 +111,6 @@ public class OrderService {
         return toResponse(saved, customer);
     }
 
-    // Entity → DTO
     private OrderResponse toResponse(Order order,
                                      CustomerClient.CustomerResponse customer) {
         OrderResponse response = new OrderResponse();
@@ -118,15 +121,26 @@ public class OrderService {
         response.setTotalAmount(order.getTotalAmount());
         response.setCreatedAt(order.getCreatedAt());
 
+        // items null veya boşsa boş liste dön
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            response.setItems(List.of());
+            return response;
+        }
+
         List<OrderResponse.OrderItemResponse> itemResponses = order.getItems()
                 .stream()
                 .map(item -> {
-                    ProductClient.ProductResponse product = productClient.getProductById(item.getProductId());
                     OrderResponse.OrderItemResponse ir = new OrderResponse.OrderItemResponse();
                     ir.setProductId(item.getProductId());
-                    ir.setProductName(product.getName());
                     ir.setQuantity(item.getQuantity());
                     ir.setPriceAtOrder(item.getPriceAtOrder());
+                    // Feign çağrısını try-catch ile sar
+                    try {
+                        var product = productClient.getProductById(item.getProductId());
+                        ir.setProductName(product.getName());
+                    } catch (Exception e) {
+                        ir.setProductName("Ürün bilgisi alınamadı");
+                    }
                     return ir;
                 })
                 .collect(Collectors.toList());
@@ -134,4 +148,5 @@ public class OrderService {
         response.setItems(itemResponses);
         return response;
     }
+
 }

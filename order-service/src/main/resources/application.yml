@@ -1,6 +1,10 @@
 spring:
   application:
     name: order-service
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/orderdb
     username: ${DB_USERNAME:postgres}

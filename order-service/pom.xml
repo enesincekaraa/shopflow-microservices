@@ -59,6 +59,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Feign OkHttp client — PATCH desteği için -->
+		<dependency>
+			<groupId>io.github.openfeign</groupId>
+			<artifactId>feign-okhttp</artifactId>
+		</dependency>
 	</dependencies>
 
 	<!-- Spring Cloud versiyon yönetimi -->
