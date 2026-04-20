@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+
+  # ---- Veritabanları ----
+  product-db:
+    image: postgres:16-alpine
+    container_name: product-db
+    environment:
+      POSTGRES_DB: productdb
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - product_data:/var/lib/postgresql/data
+    networks:
+      - shopflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  customer-db:
+    image: postgres:16-alpine
+    container_name: customer-db
+    environment:
+      POSTGRES_DB: customerdb
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - customer_data:/var/lib/postgresql/data
+    networks:
+      - shopflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-db:
+    image: postgres:16-alpine
+    container_name: order-db
+    environment:
+      POSTGRES_DB: orderdb
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - order_data:/var/lib/postgresql/data
+    networks:
+      - shopflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Servisler ----
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    env_file: .env
+    environment:
+      DB_HOST: product-db
+    ports:
+      - "8081:8081"
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - shopflow-network
+
+  customer-service:
+    build: ./customer-service
+    container_name: customer-service
+    env_file: .env
+    environment:
+      DB_HOST: customer-db
+    ports:
+      - "8082:8082"
+    depends_on:
+      customer-db:
+        condition: service_healthy
+    networks:
+      - shopflow-network
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    env_file: .env
+    environment:
+      DB_HOST: order-db
+      PRODUCT_SERVICE_HOST: product-service
+      CUSTOMER_SERVICE_HOST: customer-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+    networks:
+      - shopflow-network
+
+networks:
+  shopflow-network:
+    driver: bridge
+
+volumes:
+  product_data:
+  customer_data:
+  order_data:
