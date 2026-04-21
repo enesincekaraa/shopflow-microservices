@@ -2,6 +2,7 @@ package com.shopflow.orderservice.service;
 
 import com.shopflow.orderservice.client.CustomerClient;
 import com.shopflow.orderservice.client.ProductClient;
+import com.shopflow.orderservice.dto.CustomerOrderSummaryResponse;
 import com.shopflow.orderservice.dto.OrderRequest;
 import com.shopflow.orderservice.dto.OrderResponse;
 import com.shopflow.orderservice.exception.ResourceNotFoundException;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -111,8 +113,85 @@ public class OrderService {
         return toResponse(saved, customer);
     }
 
-    private OrderResponse toResponse(Order order,
-                                     CustomerClient.CustomerResponse customer) {
+
+
+    @Transactional(readOnly = true)
+    public CustomerOrderSummaryResponse getCustomerOrderSummary(Long customerId) {
+
+        var customer = customerClient.getCustomerById(customerId);
+
+        List<Order> orders = orderRepository.findByCustomerId(customerId);
+
+        BigDecimal totalSpent = orders.stream()
+                .map(Order::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long pendingOrders = orders.stream()
+                .filter(o->o.getStatus().equals(OrderStatus.PENDING))
+                .count();
+
+        long deliveredOrders = orders.stream()
+                .filter(o->o.getStatus().equals(OrderStatus.DELIVERED))
+                .count();
+
+        List<CustomerOrderSummaryResponse.OrderSummaryItem> summaryItems = orders.stream()
+                .map(order -> {
+                    var item = new CustomerOrderSummaryResponse.OrderSummaryItem();
+                    item.setOrderId(order.getId());
+                    item.setStatus(order.getStatus());
+                    item.setAmount(order.getTotalAmount());
+                    item.setCreatedAt(order.getCreatedAt());
+                    item.setItemCount(order.getItems().size());
+                    return item;
+                }).toList();
+
+        CustomerOrderSummaryResponse response = new CustomerOrderSummaryResponse();
+        response.setCustomerId(customer.getId());
+        response.setCustomerName(customer.getName());
+        response.setCustomerEmail(customer.getEmail());
+        response.setTotalOrders(orders.size());
+        response.setTotalSpent(totalSpent);
+        response.setPendingOrders(pendingOrders);
+        response.setDeliveredOrders(deliveredOrders);
+        response.setOrders(summaryItems);
+        return response;
+
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Sipariş bulunamadı: " + orderId));
+
+        if (order.getStatus() ==OrderStatus.SHIPPED || order.getStatus() == OrderStatus.DELIVERED)
+        {
+            throw new BadRequestException(
+                    "Kargoya verilmiş veya teslim edilmiş sipariş iptal edilemez");
+        }
+
+        if (order.getStatus()==OrderStatus.CANCELLED){
+            throw new BadRequestException("Sipariş zaten iptal edilmiş");
+        }
+        order.setStatus(OrderStatus.CANCELLED);
+        Order saved =  orderRepository.save(order);
+
+        for(OrderItem item :order.getItems()){
+            try {
+                productClient.increaseStock(item.getProductId(), item.getQuantity());
+                log.info("Stok iade edildi — ürün: {}, miktar: {}",
+                        item.getProductId(), item.getQuantity());
+            }catch (Exception e){
+                log.error("Stok iadesi başarısız — ürün: {}", item.getProductId());
+
+            }
+        }
+        var customer = customerClient.getCustomerById(saved.getCustomerId());
+        return toResponse(saved, customer);
+    }
+
+
+    private OrderResponse toResponse(Order order, CustomerClient.CustomerResponse customer) {
         OrderResponse response = new OrderResponse();
         response.setId(order.getId());
         response.setCustomerId(order.getCustomerId());
@@ -121,11 +200,27 @@ public class OrderService {
         response.setTotalAmount(order.getTotalAmount());
         response.setCreatedAt(order.getCreatedAt());
 
-        // items null veya boşsa boş liste dön
-        if (order.getItems() == null || order.getItems().isEmpty()) {
+        if (order.getItems() ==  null || order.getItems().isEmpty()) {
             response.setItems(List.of());
             return response;
         }
+
+        List<Long> productsIds = order.getItems().stream()
+                .map(OrderItem::getProductId)
+                .toList();
+
+        List<ProductClient.ProductResponse> products;
+        try {
+            products = productClient.getProductByIds(productsIds);
+        }catch (Exception e){
+            log.warn("Ürün bilgileri alınamadı: {}", e.getMessage());
+            products = List.of();
+        }
+
+        Map<Long, ProductClient.ProductResponse> productMap = products.stream()
+                .collect(Collectors.toMap(
+                        ProductClient.ProductResponse::getId, p -> p
+                ));
 
         List<OrderResponse.OrderItemResponse> itemResponses = order.getItems()
                 .stream()
@@ -133,20 +228,19 @@ public class OrderService {
                     OrderResponse.OrderItemResponse ir = new OrderResponse.OrderItemResponse();
                     ir.setProductId(item.getProductId());
                     ir.setQuantity(item.getQuantity());
-                    ir.setPriceAtOrder(item.getPriceAtOrder());
-                    // Feign çağrısını try-catch ile sar
-                    try {
-                        var product = productClient.getProductById(item.getProductId());
-                        ir.setProductName(product.getName());
-                    } catch (Exception e) {
-                        ir.setProductName("Ürün bilgisi alınamadı");
-                    }
+                    ir.setPriceAtOrder(item.getPriceAtOrder()); // sipariş anındaki fiyat
+
+                    // Map'ten O(1) ile bul — Feign çağrısı yok
+                    ProductClient.ProductResponse product = productMap.get(item.getProductId());
+                    ir.setProductName(product != null ? product.getName() : "Ürün bilgisi yok");
                     return ir;
                 })
                 .collect(Collectors.toList());
 
         response.setItems(itemResponses);
         return response;
+
+
     }
 
 }

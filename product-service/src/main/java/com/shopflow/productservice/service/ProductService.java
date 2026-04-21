@@ -49,6 +49,18 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    @Transactional
+    public Product increaseStock(Long id, int quantity) {
+        Product product = getProductById(id);
+        product.increaseStock(quantity);
+        return productRepository.save(product);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Product> getProductsByIds(List<Long> ids) {
+        return productRepository.findAllById(ids);
+    }
+
     public List<Product> getAvailableProducts() {
         return productRepository.findByStockGreaterThan(0);
     }

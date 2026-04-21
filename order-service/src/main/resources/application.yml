@@ -5,6 +5,18 @@ spring:
     openfeign:
       okhttp:
         enabled: true
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
+          product-service:
+            connect-timeout: 2000
+            read-timeout: 3000
+          customer-service:
+            connect-timeout: 2000
+            read-timeout: 3000
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/orderdb
     username: ${DB_USERNAME:postgres}

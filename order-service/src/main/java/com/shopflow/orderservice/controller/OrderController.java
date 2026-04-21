@@ -1,5 +1,6 @@
 package com.shopflow.orderservice.controller;
 
+import com.shopflow.orderservice.dto.CustomerOrderSummaryResponse;
 import com.shopflow.orderservice.dto.OrderRequest;
 import com.shopflow.orderservice.dto.OrderResponse;
 import com.shopflow.orderservice.model.OrderStatus;
@@ -41,5 +42,16 @@ public class OrderController {
             @PathVariable Long id,
             @RequestParam OrderStatus status) {
         return ResponseEntity.ok(orderService.updateStatus(id, status));
+    }
+
+    @GetMapping("/customer/{customerId}/summary")
+    public ResponseEntity<CustomerOrderSummaryResponse> getCustomerOrderSummary(
+            @PathVariable Long customerId) {
+        return ResponseEntity.ok(orderService.getCustomerOrderSummary(customerId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.cancelOrder(id));
     }
 }
