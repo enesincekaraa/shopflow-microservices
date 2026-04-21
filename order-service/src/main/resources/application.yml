@@ -1,6 +1,8 @@
 spring:
   application:
     name: order-service
+  config:
+    import: "configserver:http://${CONFIG_SERVER_HOST:localhost}:8888"
   cloud:
     openfeign:
       okhttp:
