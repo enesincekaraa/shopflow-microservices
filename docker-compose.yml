@@ -1,6 +1,5 @@
 services:
 
-  # ---- Config Server ----
   config-server:
     build: ./config-server
     container_name: config-server
@@ -15,7 +14,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # ---- Eureka Server ----
   eureka-server:
     build: ./eureka-server
     container_name: eureka-server
@@ -33,7 +31,22 @@ services:
       timeout: 10s
       retries: 5
 
-  # ---- Veritabanları ----
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    environment:
+      CONFIG_SERVER_HOST: config-server
+      EUREKA_HOST: eureka-server
+    ports:
+      - "8080:8080"       # tek dışa açık port
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - shopflow-network
+
   product-db:
     image: postgres:16-alpine
     container_name: product-db
@@ -41,8 +54,6 @@ services:
       POSTGRES_DB: productdb
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5433:5432"
     volumes:
       - product_data:/var/lib/postgresql/data
     networks:
@@ -60,8 +71,6 @@ services:
       POSTGRES_DB: customerdb
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5434:5432"
     volumes:
       - customer_data:/var/lib/postgresql/data
     networks:
@@ -79,8 +88,6 @@ services:
       POSTGRES_DB: orderdb
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5435:5432"
     volumes:
       - order_data:/var/lib/postgresql/data
     networks:
@@ -91,7 +98,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ---- Servisler ----
   product-service:
     build: ./product-service
     container_name: product-service
@@ -100,8 +106,6 @@ services:
       DB_HOST: product-db
       CONFIG_SERVER_HOST: config-server
       EUREKA_HOST: eureka-server
-    ports:
-      - "8081:8081"
     depends_on:
       product-db:
         condition: service_healthy
@@ -120,8 +124,6 @@ services:
       DB_HOST: customer-db
       CONFIG_SERVER_HOST: config-server
       EUREKA_HOST: eureka-server
-    ports:
-      - "8082:8082"
     depends_on:
       customer-db:
         condition: service_healthy
@@ -140,8 +142,6 @@ services:
       DB_HOST: order-db
       CONFIG_SERVER_HOST: config-server
       EUREKA_HOST: eureka-server
-    ports:
-      - "8083:8083"
     depends_on:
       order-db:
         condition: service_healthy

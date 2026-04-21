@@ -6,6 +6,53 @@
 @order_url = http://localhost:8083
 @config_url = http://localhost:8888
 @eureka_url = http://localhost:8761
+@gateway_url = http://localhost:8080
+
+
+
+### Gateway üzerinden ürün ekle
+POST {{gateway_url}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Gateway Test Ürünü",
+  "description": "Gateway üzerinden eklendi",
+  "price": 999,
+  "stock": 5
+}
+
+###
+
+### Gateway üzerinden müşteri ekle
+POST {{gateway_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Gateway Test",
+  "email": "gateway@test.com",
+  "phone": "05550000099"
+}
+
+###
+
+### Gateway üzerinden sipariş oluştur
+POST {{gateway_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "items": [{ "productId": 1, "quantity": 1 }]
+}
+
+###
+
+### Gateway Health
+GET {{gateway_url}}/actuator/health
+
+###
+
+### Gateway Routes — hangi route'lar tanımlı
+GET {{gateway_url}}/actuator/gateway/routes
 
 # =====================================================
 # CONFIG SERVER
