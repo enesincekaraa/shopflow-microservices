@@ -2,11 +2,10 @@ package com.shopflow.orderservice.client;
 
 import lombok.Data;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
+import java.util.List;
 
 @FeignClient(name = "product-service", url = "${services.product-service.url}")
 public interface ProductClient {
@@ -16,6 +15,12 @@ public interface ProductClient {
 
     @PatchMapping("/api/products/{id}/decrease-stock")
     void decreaseStock(@PathVariable Long id, @RequestParam int quantity);
+
+    @PatchMapping("/api/products/{id}/increase-stock")
+    void increaseStock(@PathVariable Long id, @RequestParam int quantity);
+
+    @PostMapping("/api/products/batch")
+    List<ProductResponse> getProductByIds(@RequestBody List<Long> ids);
 
     @Data
     class ProductResponse{

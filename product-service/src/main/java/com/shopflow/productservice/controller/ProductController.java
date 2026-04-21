@@ -58,4 +58,16 @@ public class ProductController {
             @RequestParam int quantity) {
         return ResponseEntity.ok(productService.decreaseStock(id, quantity));
     }
+    @PatchMapping("/{id}/increase-stock")
+    public ResponseEntity<Product> increaseStock(
+            @PathVariable Long id,
+            @RequestParam int quantity
+    ){
+        return ResponseEntity.ok(productService.increaseStock(id, quantity));
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<List<Product>> getProductsByIds(@RequestBody List<Long> ids) {
+        return ResponseEntity.ok(productService.getProductsByIds(ids));
+    }
 }

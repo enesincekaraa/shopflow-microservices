@@ -43,4 +43,10 @@ public class Product {
         this.stock -= quantity;
     }
 
+
+    public void increaseStock(int quantity) {
+       if (quantity<=0){
+           throw new IllegalArgumentException("Artırılacak miktar 0'dan büyük olmalıdır.");       }
+        this.stock += quantity;
+    }
 }
