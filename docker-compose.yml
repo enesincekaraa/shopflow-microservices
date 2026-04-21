@@ -1,8 +1,19 @@
-version: '3.8'
-
 services:
 
-  # ---- Veritabanları ----
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - shopflow-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider",
+             "http://localhost:8888/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
   product-db:
     image: postgres:16-alpine
     container_name: product-db
@@ -60,17 +71,19 @@ services:
       timeout: 5s
       retries: 5
 
-  # ---- Servisler ----
   product-service:
     build: ./product-service
     container_name: product-service
     env_file: .env
     environment:
       DB_HOST: product-db
+      CONFIG_SERVER_HOST: config-server
     ports:
       - "8081:8081"
     depends_on:
       product-db:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
     networks:
       - shopflow-network
@@ -81,10 +94,13 @@ services:
     env_file: .env
     environment:
       DB_HOST: customer-db
+      CONFIG_SERVER_HOST: config-server
     ports:
       - "8082:8082"
     depends_on:
       customer-db:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
     networks:
       - shopflow-network
@@ -95,12 +111,15 @@ services:
     env_file: .env
     environment:
       DB_HOST: order-db
+      CONFIG_SERVER_HOST: config-server
       PRODUCT_SERVICE_HOST: product-service
       CUSTOMER_SERVICE_HOST: customer-service
     ports:
       - "8083:8083"
     depends_on:
       order-db:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
       product-service:
         condition: service_started
