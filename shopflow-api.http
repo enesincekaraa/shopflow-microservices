@@ -1,0 +1,449 @@
+### ShopFlow Microservices — HTTP Client
+### IntelliJ IDEA HTTP Client ile kullan
+
+@product_url = http://localhost:8081
+@customer_url = http://localhost:8082
+@order_url = http://localhost:8083
+@config_url = http://localhost:8888
+@eureka_url = http://localhost:8761
+
+# =====================================================
+# CONFIG SERVER
+# =====================================================
+
+### Config Server Health
+GET {{config_url}}/actuator/health
+
+###
+
+### Product Service Config
+GET {{config_url}}/product-service/default
+
+###
+
+### Customer Service Config
+GET {{config_url}}/customer-service/default
+
+###
+
+### Order Service Config
+GET {{config_url}}/order-service/default
+
+###
+
+# =====================================================
+# EUREKA SERVER
+# =====================================================
+
+### Eureka Health
+GET {{eureka_url}}/actuator/health
+
+###
+
+### Kayıtlı Tüm Servisler
+GET {{eureka_url}}/eureka/apps
+Accept: application/json
+
+###
+
+# =====================================================
+# PRODUCT SERVICE
+# =====================================================
+
+### Health Check
+GET {{product_url}}/actuator/health
+
+###
+
+### Actuator — Tüm Endpoint'ler
+GET {{product_url}}/actuator
+
+###
+
+### Actuator — JVM Memory
+GET {{product_url}}/actuator/metrics/jvm.memory.used
+
+###
+
+### Tüm Ürünleri Getir
+GET {{product_url}}/api/products
+
+###
+
+### Ürün Getir (ID ile)
+GET {{product_url}}/api/products/1
+
+###
+
+### Stokta Olan Ürünleri Getir
+GET {{product_url}}/api/products/available
+
+###
+
+### Ürün Ekle
+POST {{product_url}}/api/products
+Content-Type: application/json
+
+{
+  "name": "iPhone 15",
+  "description": "Apple akıllı telefon",
+  "price": 45000,
+  "stock": 10
+}
+
+###
+
+### Ürün Ekle 2
+POST {{product_url}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Samsung Galaxy S24",
+  "description": "Android akıllı telefon",
+  "price": 35000,
+  "stock": 15
+}
+
+###
+
+### Ürün Ekle 3
+POST {{product_url}}/api/products
+Content-Type: application/json
+
+{
+  "name": "MacBook Pro",
+  "description": "Apple laptop",
+  "price": 120000,
+  "stock": 5
+}
+
+###
+
+### Ürün Güncelle
+PUT {{product_url}}/api/products/1
+Content-Type: application/json
+
+{
+  "name": "iPhone 15 Pro",
+  "description": "Apple akıllı telefon — güncel model",
+  "price": 55000,
+  "stock": 8
+}
+
+###
+
+### Ürün Sil
+DELETE {{product_url}}/api/products/1
+
+###
+
+### Stok Azalt
+PUT {{product_url}}/api/products/1/decrease-stock?quantity=2
+
+###
+
+### Stok Artır
+PUT {{product_url}}/api/products/1/increase-stock?quantity=2
+
+###
+
+### Toplu Ürün Getir (Batch)
+POST {{product_url}}/api/products/batch
+Content-Type: application/json
+
+[1, 2, 3]
+
+###
+
+### Validation Hatası Testi — Fiyat negatif (400)
+POST {{product_url}}/api/products
+Content-Type: application/json
+
+{
+  "name": "",
+  "price": -100,
+  "stock": -5
+}
+
+###
+
+### 404 Testi — Olmayan ürün
+GET {{product_url}}/api/products/999
+
+###
+
+# =====================================================
+# CUSTOMER SERVICE
+# =====================================================
+
+### Health Check
+GET {{customer_url}}/actuator/health
+
+###
+
+### Tüm Müşterileri Getir
+GET {{customer_url}}/api/customers
+
+###
+
+### Müşteri Getir (ID ile)
+GET {{customer_url}}/api/customers/1
+
+###
+
+### Müşteri Ekle
+POST {{customer_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Ahmet Yılmaz",
+  "email": "ahmet@example.com",
+  "phone": "05551234567"
+}
+
+###
+
+### Müşteri Ekle 2
+POST {{customer_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Ayşe Kaya",
+  "email": "ayse@example.com",
+  "phone": "05559876543"
+}
+
+###
+
+### Müşteri Ekle 3
+POST {{customer_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Mehmet Demir",
+  "email": "mehmet@example.com",
+  "phone": "05553456789"
+}
+
+###
+
+### Duplicate Email Testi — 409 Conflict
+POST {{customer_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Kopya Kullanıcı",
+  "email": "ahmet@example.com",
+  "phone": "05550000000"
+}
+
+###
+
+### Validation Hatası Testi — 400 Bad Request
+POST {{customer_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "gecersiz-email-formati"
+}
+
+###
+
+### 404 Testi — Olmayan müşteri
+GET {{customer_url}}/api/customers/999
+
+###
+
+# =====================================================
+# ORDER SERVICE
+# =====================================================
+
+### Health Check
+GET {{order_url}}/actuator/health
+
+###
+
+### Sipariş Oluştur — Tek Ürün
+POST {{order_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 2
+    }
+  ]
+}
+
+###
+
+### Sipariş Oluştur — Çok Ürün
+POST {{order_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 1
+    },
+    {
+      "productId": 2,
+      "quantity": 3
+    }
+  ]
+}
+
+###
+
+### Sipariş Oluştur — 2. Müşteri
+POST {{order_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 2,
+  "items": [
+    {
+      "productId": 3,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+### Sipariş Getir (ID ile)
+GET {{order_url}}/api/orders/1
+
+###
+
+### Müşterinin Tüm Siparişleri
+GET {{order_url}}/api/orders/customer/1
+
+###
+
+### Müşteri Sipariş Özeti (Senaryo 1)
+GET {{order_url}}/api/orders/customer/1/summary
+
+###
+
+### Sipariş Durumu Güncelle — CONFIRMED
+PATCH {{order_url}}/api/orders/1/status?status=CONFIRMED
+
+###
+
+### Sipariş Durumu Güncelle — SHIPPED
+PATCH {{order_url}}/api/orders/1/status?status=SHIPPED
+
+###
+
+### Sipariş Durumu Güncelle — DELIVERED
+PATCH {{order_url}}/api/orders/1/status?status=DELIVERED
+
+###
+
+### Sipariş İptal Et — Stok İade (Senaryo 2)
+DELETE {{order_url}}/api/orders/1
+
+###
+
+### Kargodaki Siparişi İptal Et — 400 hatası
+DELETE {{order_url}}/api/orders/1
+
+###
+
+### Olmayan Sipariş — 404
+GET {{order_url}}/api/orders/999
+
+###
+
+### ErrorDecoder Testi — Olmayan müşteri özeti — 404
+GET {{order_url}}/api/orders/customer/999/summary
+
+###
+
+### Validation Testi — Boş items — 400
+POST {{order_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "items": []
+}
+
+###
+
+### Yetersiz Stok Testi — 400
+POST {{order_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 9999
+    }
+  ]
+}
+
+###
+
+# =====================================================
+# SENARYO AKIŞI — Sırayla çalıştır
+# =====================================================
+
+### [AKIŞ 1] Adım 1 — Ürün ekle
+POST {{product_url}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Test Ürünü",
+  "description": "Senaryo testi",
+  "price": 100,
+  "stock": 10
+}
+
+###
+
+### [AKIŞ 1] Adım 2 — Müşteri ekle
+POST {{customer_url}}/api/customers
+Content-Type: application/json
+
+{
+  "name": "Test Müşteri",
+  "email": "test@example.com",
+  "phone": "05550000001"
+}
+
+###
+
+### [AKIŞ 1] Adım 3 — Sipariş oluştur (stok: 10 → 8)
+POST {{order_url}}/api/orders
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "items": [{ "productId": 1, "quantity": 2 }]
+}
+
+###
+
+### [AKIŞ 1] Adım 4 — Stok düştü mü kontrol et (8 olmalı)
+GET {{product_url}}/api/products/1
+
+###
+
+### [AKIŞ 1] Adım 5 — Siparişi iptal et (stok: 8 → 10)
+DELETE {{order_url}}/api/orders/1
+
+###
+
+### [AKIŞ 1] Adım 6 — Stok geri geldi mi kontrol et (10 olmalı)
+GET {{product_url}}/api/products/1
+
+###
